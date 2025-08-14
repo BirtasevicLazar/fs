@@ -21,9 +21,9 @@ $data = readJsonBody();
 
 switch ($method) {
     case 'POST':
-        $date = sanitizeInput($data['date'] ?? '', 'string');
+        $date = parseDateStrict(sanitizeInput($data['date'] ?? '', 'string'));
         $reason = sanitizeInput($data['reason'] ?? '', 'string');
-        if ($date === '') { http_response_code(400); echo json_encode(['error' => 'date je obavezan (YYYY-MM-DD)']); exit; }
+        if ($date === null) { http_response_code(400); echo json_encode(['error' => 'date je obavezan i mora biti validan (YYYY-MM-DD)']); exit; }
         $stmt = $conn->prepare('INSERT INTO days_off (date, reason) VALUES (?, ?) ON DUPLICATE KEY UPDATE reason=VALUES(reason)');
         $stmt->bind_param('ss', $date, $reason);
         $stmt->execute();

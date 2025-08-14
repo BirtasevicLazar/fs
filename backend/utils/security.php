@@ -33,6 +33,53 @@ function sanitizeInput($input, $type = 'string') {
     }
 }
 
+// Timezone helper
+function appTimezone(): DateTimeZone {
+    $tz = $_ENV['APP_TIMEZONE'] ?? getenv('APP_TIMEZONE') ?: date_default_timezone_get() ?: 'Europe/Belgrade';
+    try { return new DateTimeZone($tz); } catch (Exception $e) { return new DateTimeZone('Europe/Belgrade'); }
+}
+
+// Strict date parser: returns normalized 'Y-m-d' or null
+function parseDateStrict(?string $date): ?string {
+    if (!$date) return null;
+    $dt = DateTime::createFromFormat('Y-m-d', $date, appTimezone());
+    $errors = DateTime::getLastErrors();
+    $warnCount = is_array($errors) ? ($errors['warning_count'] ?? 0) : 0;
+    $errCount = is_array($errors) ? ($errors['error_count'] ?? 0) : 0;
+    if (!$dt || $warnCount || $errCount) return null;
+    // Ensure exact match (no partials like 2025-8-1)
+    return $dt->format('Y-m-d') === $date ? $date : null;
+}
+
+// Strict time parser: accepts 'H:i' or 'H:i:s', returns normalized 'H:i:s' or null
+function parseTimeStrict(?string $time): ?string {
+    if (!$time) return null;
+    // Normalize to H:i:s if only H:i provided
+    if (preg_match('/^\d{2}:\d{2}$/', $time)) {
+        $time .= ':00';
+    }
+    $dt = DateTime::createFromFormat('H:i:s', $time, appTimezone());
+    $errors = DateTime::getLastErrors();
+    $warnCount = is_array($errors) ? ($errors['warning_count'] ?? 0) : 0;
+    $errCount = is_array($errors) ? ($errors['error_count'] ?? 0) : 0;
+    if (!$dt || $warnCount || $errCount) return null;
+    return $dt->format('H:i:s');
+}
+
+// Check that end time is strictly after start time (same arbitrary date)
+function isTimeRangeValid(string $startTime, string $endTime): bool {
+    $tz = appTimezone();
+    $s = DateTime::createFromFormat('H:i:s', $startTime, $tz);
+    $e = DateTime::createFromFormat('H:i:s', $endTime, $tz);
+    if (!$s || !$e) return false;
+    return $e > $s;
+}
+
+// Helper: current DateTime in app TZ
+function nowTz(): DateTime {
+    return new DateTime('now', appTimezone());
+}
+
 // Helper: strogo JSON zahtevi
 function requireJsonRequest() {
     $contentType = $_SERVER['CONTENT_TYPE'] ?? '';

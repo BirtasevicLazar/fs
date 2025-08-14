@@ -4,8 +4,8 @@ require_once __DIR__ . '/../database/db.php';
 require_once __DIR__ . '/../utils/security.php';
 
 // Inputs: date=YYYY-MM-DD
-$date = sanitizeInput($_GET['date'] ?? '', 'string');
-if ($date === '') {
+$date = parseDateStrict(sanitizeInput($_GET['date'] ?? '', 'string'));
+if ($date === null) {
     http_response_code(400);
     echo json_encode(['error' => 'date je obavezan (YYYY-MM-DD)']);
     exit;
@@ -21,7 +21,7 @@ if ($stmt->get_result()->num_rows > 0) {
 }
 
 // Determine weekday (1..7, Monday=1)
-$weekday = (int)date('N', strtotime($date));
+$weekday = (int)(new DateTime($date, appTimezone()))->format('N');
 $stmt = $conn->prepare('SELECT start_time, end_time FROM working_hours WHERE day_of_week = ?');
 $stmt->bind_param('i', $weekday);
 $stmt->execute();
@@ -43,19 +43,23 @@ if ($resInterval && $resInterval->num_rows > 0) {
     if ($iv > 0) { $interval = $iv; }
 }
 
-// Generate interval-based slots aligned to interval grid
+// Generate interval-based slots aligned to interval grid (TZ-aware)
+$tz = appTimezone();
 $slots = [];
-$startTs = strtotime($date . ' ' . $start);
-$endTs = strtotime($date . ' ' . $end);
-
-// Align start to nearest interval step from midnight
-$midnight = strtotime($date . ' 00:00:00');
-$offset = ($startTs - $midnight) % ($interval * 60);
-$cursor = $offset === 0 ? $startTs : $startTs + (($interval * 60) - $offset);
-
-while ($cursor + $interval*60 <= $endTs) {
-    $slots[] = date('H:i:s', $cursor);
-    $cursor += $interval * 60;
+$startDt = DateTime::createFromFormat('Y-m-d H:i:s', "$date $start", $tz);
+$endDt = DateTime::createFromFormat('Y-m-d H:i:s', "$date $end", $tz);
+$midnight = DateTime::createFromFormat('Y-m-d H:i:s', "$date 00:00:00", $tz);
+if ($startDt && $endDt && $midnight) {
+    $startTs = $startDt->getTimestamp();
+    $endTs = $endDt->getTimestamp();
+    $midTs = $midnight->getTimestamp();
+    $step = $interval * 60;
+    $offset = ($startTs - $midTs) % $step;
+    $cursor = $offset === 0 ? $startTs : $startTs + ($step - $offset);
+    while ($cursor + $step <= $endTs) {
+        $slots[] = (new DateTime('@' . $cursor))->setTimezone($tz)->format('H:i:s');
+        $cursor += $step;
+    }
 }
 
 // Read booked times for that date

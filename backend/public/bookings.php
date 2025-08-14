@@ -9,8 +9,8 @@ $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 if ($method === 'GET') {
     // Admin-only: pregled zakazanih termina po datumu
     requireLogin();
-    $date = sanitizeInput($_GET['date'] ?? '', 'string');
-    if ($date === '') { http_response_code(400); echo json_encode(['error' => 'date obavezan']); exit; }
+    $date = parseDateStrict(sanitizeInput($_GET['date'] ?? '', 'string'));
+    if ($date === null) { http_response_code(400); echo json_encode(['error' => 'date obavezan i mora biti validan (YYYY-MM-DD)']); exit; }
     $stmt = $conn->prepare('SELECT b.id, b.date, b.time, b.customer_name, b.customer_phone, b.status, s.name as service_name, s.duration_minutes, s.price FROM bookings b JOIN services s ON b.service_id = s.id WHERE b.date = ? ORDER BY b.time');
     $stmt->bind_param('s', $date);
     $stmt->execute();
@@ -26,10 +26,10 @@ if ($method === 'POST') {
     $service_id = sanitizeInput($data['service_id'] ?? null, 'int');
     $name = sanitizeInput($data['customer_name'] ?? '', 'string');
     $phone = sanitizeInput($data['customer_phone'] ?? '', 'string');
-    $date = sanitizeInput($data['date'] ?? '', 'string');
-    $time = sanitizeInput($data['time'] ?? '', 'string');
+    $date = parseDateStrict(sanitizeInput($data['date'] ?? '', 'string'));
+    $time = parseTimeStrict(sanitizeInput($data['time'] ?? '', 'string'));
 
-    if ($service_id === null || $name === '' || $phone === '' || $date === '' || $time === '') {
+    if ($service_id === null || $name === '' || $phone === '' || $date === null || $time === null) {
         http_response_code(400);
         echo json_encode(['error' => 'Sva polja su obavezna']);
         exit;
@@ -55,16 +55,18 @@ if ($method === 'POST') {
     $stmt->execute();
     if ($stmt->get_result()->num_rows > 0) { http_response_code(400); echo json_encode(['error' => 'Neradni dan']); exit; }
 
-    $weekday = (int)date('N', strtotime($date));
+    $weekday = (int)(new DateTime($date, appTimezone()))->format('N');
     $stmt = $conn->prepare('SELECT start_time, end_time FROM working_hours WHERE day_of_week = ?');
     $stmt->bind_param('i', $weekday);
     $stmt->execute();
     $wh = $stmt->get_result()->fetch_assoc();
     if (!$wh) { http_response_code(400); echo json_encode(['error' => 'Nema radnog vremena za ovaj dan']); exit; }
 
-    $slotTs = strtotime($date . ' ' . $time);
-    // Disallow booking in the past
-    if ($slotTs <= time()) { http_response_code(400); echo json_encode(['error' => 'Ne možete rezervisati prošli termin']); exit; }
+    $tz = appTimezone();
+    $slotDt = DateTime::createFromFormat('Y-m-d H:i:s', "$date $time", $tz);
+    if (!$slotDt) { http_response_code(400); echo json_encode(['error' => 'Nevažeći termin']); exit; }
+    // Disallow booking in the past (TZ-aware)
+    if ($slotDt <= nowTz()) { http_response_code(400); echo json_encode(['error' => 'Ne možete rezervisati prošli termin']); exit; }
 
     // Read configured interval and ensure alignment
     $interval = 60;
@@ -74,12 +76,12 @@ if ($method === 'POST') {
         $iv = (int)($rowi['value'] ?? 60);
         if ($iv > 0) { $interval = $iv; }
     }
-    $midnight = strtotime($date . ' 00:00:00');
-    $aligned = (($slotTs - $midnight) % ($interval * 60)) === 0;
+    $midnight = DateTime::createFromFormat('Y-m-d H:i:s', "$date 00:00:00", $tz);
+    $aligned = (($slotDt->getTimestamp() - $midnight->getTimestamp()) % ($interval * 60)) === 0;
     if (!$aligned) { http_response_code(400); echo json_encode(['error' => 'Termin mora biti poravnat na ' . $interval . ' minuta']); exit; }
-    $startTs = strtotime($date . ' ' . $wh['start_time']);
-    $endTs = strtotime($date . ' ' . $wh['end_time']);
-    if ($slotTs < $startTs || $slotTs + $interval*60 > $endTs) { // ensure fits within working window
+    $startTs = DateTime::createFromFormat('Y-m-d H:i:s', "$date {$wh['start_time']}", $tz)->getTimestamp();
+    $endTs = DateTime::createFromFormat('Y-m-d H:i:s', "$date {$wh['end_time']}", $tz)->getTimestamp();
+    if ($slotDt->getTimestamp() < $startTs || $slotDt->getTimestamp() + $interval*60 > $endTs) { // ensure fits within working window
         http_response_code(400); echo json_encode(['error' => 'Termin van radnog vremena']); exit; }
 
     // Check slot free

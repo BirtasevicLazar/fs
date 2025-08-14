@@ -22,11 +22,21 @@ $data = readJsonBody();
 switch ($method) {
     case 'POST': // create or replace for a day
         $day = sanitizeInput($data['day_of_week'] ?? null, 'int');
-        $start = sanitizeInput($data['start_time'] ?? '', 'string');
-        $end = sanitizeInput($data['end_time'] ?? '', 'string');
-        if ($day === null || $start === '' || $end === '') {
+        $start = parseTimeStrict(sanitizeInput($data['start_time'] ?? '', 'string'));
+        $end = parseTimeStrict(sanitizeInput($data['end_time'] ?? '', 'string'));
+        if ($day === null || $start === null || $end === null) {
             http_response_code(400);
-            echo json_encode(['error' => 'day_of_week, start_time, end_time su obavezni']);
+            echo json_encode(['error' => 'day_of_week, start_time (HH:MM[:SS]) i end_time (HH:MM[:SS]) su obavezni i moraju biti validni']);
+            exit;
+        }
+        if ($day < 1 || $day > 7) {
+            http_response_code(400);
+            echo json_encode(['error' => 'day_of_week mora biti 1..7 (ponedeljak=1)']);
+            exit;
+        }
+        if (!isTimeRangeValid($start, $end)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'end_time mora biti posle start_time']);
             exit;
         }
         // upsert by day_of_week

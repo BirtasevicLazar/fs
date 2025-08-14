@@ -27,6 +27,10 @@ function loadEnv($path) {
 // Učitaj .env fajl
 loadEnv(__DIR__ . '/.env');
 
+// Podesi aplikacionu vremensku zonu iz .env (fallback Europe/Belgrade)
+$appTz = $_ENV['APP_TIMEZONE'] ?? getenv('APP_TIMEZONE') ?: 'Europe/Belgrade';
+@date_default_timezone_set($appTz);
+
 // Database konfiguracija iz environment varijabli
 $host = $_ENV['DB_HOST'] ?? '127.0.0.1';
 $dbname = $_ENV['DB_NAME'] ?? '';
