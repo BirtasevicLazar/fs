@@ -1,1 +1,56 @@
 @import "tailwindcss";
+
+/* Base: Apple-like dark with gold accents */
+:root { color-scheme: dark; }
+html, body, #root { height: 100%; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body { background: #000; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; font-family: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; font-optical-sizing: auto; font-weight: 300; font-style: normal; }
+
+/* Elegant thin variant utility for headings/subtitles */
+.thin { font-weight: 300; }
+.semibold { font-weight: 600; }
+.bold { font-weight: 700; }
+
+/* iOS safe areas */
+.pt-safe { padding-top: env(safe-area-inset-top); }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+.pl-safe { padding-left: env(safe-area-inset-left); }
+.pr-safe { padding-right: env(safe-area-inset-right); }
+
+/* Subtle glassy surfaces */
+.glass { background-color: rgba(9,9,11,0.7); backdrop-filter: saturate(140%) blur(10px); }
+
+/* Gold accents */
+.gold-gradient { background-image: linear-gradient(135deg, #fde68a, #f59e0b, #eab308); }
+.gold-text { background: linear-gradient(135deg, #fef3c7, #facc15); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
+
+/* Animated gold shimmer for headlines */
+.gold-text-animate {
+	background: linear-gradient(90deg, #fef3c7, #facc15, #d97706, #facc15, #fef3c7);
+	background-size: 200% 100%;
+	-webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
+	animation: goldShimmer 6s ease-in-out infinite;
+}
+
+@keyframes goldShimmer {
+	0% { background-position: 0% 50%; }
+	50% { background-position: 100% 50%; }
+	100% { background-position: 0% 50%; }
+}
+
+/* Subtle soft grain using layered radial gradients (no extra assets) */
+.soft-grain {
+	background-image:
+		radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.03) 0, transparent 100%),
+		radial-gradient(1px 1px at 80% 0%, rgba(255,255,255,0.02) 0, transparent 100%),
+		radial-gradient(1px 1px at 0% 50%, rgba(255,255,255,0.02) 0, transparent 100%);
+}
+
+/* Prevent descender clipping on large gradient headings */
+.gold-heading { display: inline-block; line-height: 1.12; padding-bottom: 0.08em; }
+
+/* Larger tap targets on mobile */
+@media (max-width: 640px) {
+	.tap { min-height: 44px; }
+}
+
