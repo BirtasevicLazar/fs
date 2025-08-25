@@ -1,12 +1,14 @@
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 export default function AdminNavbar() {
   const nav = useNavigate()
+  const location = useLocation()
   const [loading, setLoading] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const isLogin = location.pathname.startsWith('/login')
 
   // Close confirm with Escape
   useEffect(() => {
@@ -35,6 +37,7 @@ export default function AdminNavbar() {
           <Link to="/" className="semibold tracking-wide gold-text text-lg">Young Star Cutz</Link>
         </div>
         <div className="flex items-center gap-2">
+          {!isLogin && (
           <button
             onClick={() => setShowConfirm(true)}
             disabled={loading}
@@ -65,7 +68,8 @@ export default function AdminNavbar() {
               </svg>
             )}
           </button>
-          {showConfirm && createPortal(
+          )}
+          {!isLogin && showConfirm && createPortal(
             <div className="fixed inset-0 z-[100]">
               <div className="absolute inset-0 bg-black/70" onClick={() => { if (!loading) setShowConfirm(false) }} />
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md p-4">

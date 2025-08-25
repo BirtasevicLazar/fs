@@ -95,6 +95,11 @@ function BookingsTab() {
   const [workingHours, setWorkingHours] = useState([])
   const [selected, setSelected] = useState(null)
   const [showModal, setShowModal] = useState(false)
+  const [showAdd, setShowAdd] = useState(false)
+  const [savingAdd, setSavingAdd] = useState(false)
+  const [services, setServices] = useState([])
+  const [slotsFree, setSlotsFree] = useState([])
+  const [addForm, setAddForm] = useState({ service_id: '', customer_name: '', customer_phone: '', time: '' })
   const ROW_H = 40 // px per slot row
   const TOP_PAD = 8 // px top padding to avoid clipping first row labels
 
@@ -169,11 +174,67 @@ function BookingsTab() {
     return () => window.removeEventListener('keydown', onKey)
   }, [showModal])
 
+  // Open Add modal: fetch services and free slots for current date
+  useEffect(() => {
+    if (!showAdd) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const [svcs, avail] = await Promise.all([
+          api.services().catch(() => []),
+          api.availability(date).catch(() => ({ slots: [] }))
+        ])
+        if (cancelled) return
+        setServices(Array.isArray(svcs) ? svcs : [])
+        const free = Array.isArray(avail?.slots) ? avail.slots : []
+        setSlotsFree(free)
+        setAddForm(f => ({
+          ...f,
+          service_id: f.service_id || (svcs?.[0]?.id ?? ''),
+          time: f.time || (free?.[0] ?? '')
+        }))
+      } catch { /* noop */ }
+    })()
+    return () => { cancelled = true }
+  }, [showAdd, date])
+
+  // Close Add modal with Escape
+  useEffect(() => {
+    if (!showAdd) return
+    const onKey = (e) => { if (e.key === 'Escape') setShowAdd(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [showAdd])
+
+  const createBooking = async () => {
+    const payload = {
+      service_id: Number(addForm.service_id) || null,
+      customer_name: addForm.customer_name?.trim(),
+      customer_phone: addForm.customer_phone?.trim(),
+      date,
+      time: addForm.time
+    }
+    if (!payload.service_id || !payload.customer_name || !payload.customer_phone || !payload.time) return
+    try {
+      setSavingAdd(true)
+      await api.createBooking(payload)
+      setShowAdd(false)
+      setAddForm({ service_id: '', customer_name: '', customer_phone: '', time: '' })
+      load()
+    } catch (e) { setError(e.message) }
+    finally { setSavingAdd(false) }
+  }
+
   return (
     <section>
       <div className="flex items-center gap-3 mb-4">
         <input type="date" value={date} onChange={e=>setDate(e.target.value)} className="rounded-lg bg-black border border-zinc-800 px-3 py-2 text-zinc-100 focus:outline-none focus:border-yellow-500" />
         <button onClick={load} className="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-yellow-500">Osveži</button>
+        <div className="ml-auto" />
+        <button onClick={()=>setShowAdd(true)} className="px-4 py-2 rounded-lg bg-yellow-500 text-black font-semibold hover:bg-yellow-400 flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          <span>Dodaj</span>
+        </button>
       </div>
       {loading ? (
         <div className="text-zinc-400">Učitavanje…</div>
@@ -259,6 +320,59 @@ function BookingsTab() {
               <button onClick={()=>{ setShowModal(false); setStatus(selected.id,'confirmed') }} className="tap px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-emerald-400 text-emerald-300">Potvrdi</button>
               <button onClick={()=>{ setShowModal(false); setStatus(selected.id,'canceled') }} className="tap px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-yellow-400 text-yellow-300">Otkaži</button>
               <button onClick={()=>{ setShowModal(false); remove(selected.id) }} className="tap px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-red-500 text-red-300">Obriši</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add booking modal */}
+      {showAdd && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={()=>!savingAdd && setShowAdd(false)} />
+          <div className="relative w-full max-w-md rounded-2xl border border-zinc-800 glass p-5 sm:p-6 shadow-2xl">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="text-lg font-semibold text-zinc-100">Dodaj termin</div>
+                <div className="text-sm text-zinc-400">Za datum {date}</div>
+              </div>
+              <button disabled={savingAdd} className="p-2 rounded-lg border border-zinc-800 hover:border-zinc-700 disabled:opacity-50" onClick={()=>setShowAdd(false)} aria-label="Zatvori">
+                <svg viewBox="0 0 24 24" className="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1">Usluga</label>
+                <select value={addForm.service_id} onChange={e=>setAddForm(f=>({ ...f, service_id: e.target.value }))} className="w-full rounded-lg bg-black border border-zinc-800 px-3 py-2 text-zinc-100 focus:outline-none focus:border-yellow-500">
+                  {services.map(s => <option key={s.id} value={s.id}>{s.name} · {s.duration_minutes} min</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-zinc-400 mb-1">Ime i prezime</label>
+                  <input value={addForm.customer_name} onChange={e=>setAddForm(f=>({ ...f, customer_name: e.target.value }))} placeholder="npr. Marko Marković" className="w-full rounded-lg bg-black border border-zinc-800 px-3 py-2 text-zinc-100 focus:outline-none focus:border-yellow-500" />
+                </div>
+                <div>
+                  <label className="block text-xs text-zinc-400 mb-1">Telefon</label>
+                  <input type="tel" value={addForm.customer_phone} onChange={e=>setAddForm(f=>({ ...f, customer_phone: e.target.value }))} placeholder="npr. +381601234567" className="w-full rounded-lg bg-black border border-zinc-800 px-3 py-2 text-zinc-100 focus:outline-none focus:border-yellow-500" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1">Termin</label>
+                {slotsFree.length ? (
+                  <select value={addForm.time} onChange={e=>setAddForm(f=>({ ...f, time: e.target.value }))} className="w-full rounded-lg bg-black border border-zinc-800 px-3 py-2 text-zinc-100 focus:outline-none focus:border-yellow-500">
+                    {slotsFree.map(t => <option key={t} value={t}>{t.slice(0,5)}</option>)}
+                  </select>
+                ) : (
+                  <div className="text-sm text-red-400">Nema slobodnih termina za ovaj dan.</div>
+                )}
+              </div>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              <button disabled={savingAdd} onClick={()=>setShowAdd(false)} className="tap px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:border-zinc-700 disabled:opacity-50">Odustani</button>
+              <button disabled={savingAdd || !addForm.service_id || !addForm.customer_name || !addForm.customer_phone || !addForm.time} onClick={createBooking} className="tap px-3 py-2 rounded-lg bg-yellow-500 text-black font-semibold hover:bg-yellow-400 disabled:opacity-50 flex items-center justify-center gap-2">
+                {savingAdd && <span className="h-4 w-4 rounded-full border-2 border-black/60 border-t-transparent animate-spin" />}
+                <span>Sačuvaj</span>
+              </button>
             </div>
           </div>
         </div>
