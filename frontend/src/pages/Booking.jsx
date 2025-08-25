@@ -284,21 +284,55 @@ export default function Booking() {
       {/* Mobile bottom sticky action bar (above footer) */}
       <div className="fixed bottom-0 inset-x-0 z-50 pb-safe lg:hidden">
         <div className="mx-auto max-w-5xl px-4 pb-4">
-          <div className="rounded-2xl border border-zinc-800 glass p-3 sm:p-4 shadow-2xl">
-            <div className="flex items-center gap-4">
-              <div className="text-sm flex-1 space-y-1">
-                <div className="flex justify-between"><span className="text-zinc-400">Usluga</span><span className="text-zinc-100">{service?.name || '-'}</span></div>
-                <div className="flex justify-between"><span className="text-zinc-400">Datum</span><span className="text-zinc-100">{fmtDate(date)}</span></div>
-                <div className="flex justify-between"><span className="text-zinc-400">Termin</span><span className="text-zinc-100">{time ? time.slice(0, 5) : '-'}</span></div>
-              </div>
-              <div className="flex items-center gap-2 sm:gap-3">
-                <button onClick={back} disabled={step===1} className="tap px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 disabled:opacity-50">Nazad</button>
-                {step < 3 ? (
-                  <button onClick={next} disabled={(step===1 && !canNext1) || (step===2 && !canNext2)} className="tap px-4 py-2 rounded-xl bg-yellow-500 text-black font-semibold disabled:opacity-50">Nastavi</button>
+          <div className="rounded-2xl border border-zinc-800 glass p-2 sm:p-2.5 shadow-2xl">
+            <div className="flex items-center gap-2.5">
+              {/* Back arrow (left) */}
+              <button
+                onClick={back}
+                disabled={step===1}
+                aria-label="Nazad"
+                className="tap h-10 w-10 grid place-items-center rounded-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 disabled:opacity-50"
+              >
+                <svg viewBox="0 0 24 24" className="h-5 w-5 text-zinc-200" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+              </button>
+
+              {/* Compact summary (center) */}
+              <div className="flex-1 min-w-0 leading-tight">
+                {(!service && !date && !time) ? (
+                  <>
+                    <div className="text-[13px] font-medium text-zinc-300 truncate">Niste još izabrali</div>
+                    <div className="text-[11px] text-zinc-500 truncate">Odaberite uslugu, datum i termin</div>
+                  </>
                 ) : (
-                  <button onClick={() => submit()} disabled={!canSubmit} className="tap px-4 py-2 rounded-xl bg-yellow-500 text-black font-semibold disabled:opacity-50">Rezerviši</button>
+                  <>
+                    <div className="text-[13px] font-medium text-zinc-100 truncate">{service?.name || '—'}</div>
+                    <div className="text-[11px] text-zinc-400 truncate">
+                      {date ? fmtDate(date) : '—'}
+                      {date && time && <span className="mx-1">·</span>}
+                      {time ? time.slice(0,5) : (date ? '' : '')}
+                    </div>
+                  </>
                 )}
               </div>
+
+              {/* Primary CTA (right) */}
+              {step < 3 ? (
+                <button
+                  onClick={next}
+                  disabled={(step===1 && !canNext1) || (step===2 && !canNext2)}
+                  className="tap h-10 px-3 rounded-xl bg-yellow-500 text-black font-semibold disabled:opacity-50 whitespace-nowrap"
+                >
+                  Napred
+                </button>
+              ) : (
+                <button
+                  onClick={() => submit()}
+                  disabled={!canSubmit}
+                  className="tap h-10 px-3 rounded-xl bg-yellow-500 text-black font-semibold disabled:opacity-50 whitespace-nowrap"
+                >
+                  Rezerviši
+                </button>
+              )}
             </div>
           </div>
         </div>
