@@ -16,7 +16,7 @@ export default function Hero() {
               Young Star Cutz
             </h1>
             <p className="mt-4 sm:mt-6 text-zinc-200 text-base sm:text-lg max-w-xl md:max-w-none mx-auto md:mx-0 thin">
-              Precizno muško šišanje, moderni fade stilovi i sređivanje brade. Brzo online zakazivanje — bez poziva i čekanja.
+              Najbolji frizer u gradu, moderni fade stilovi i sređivanje brade. Brzo online zakazivanje — bez poziva i čekanja.
             </p>
             <div className="mt-8 flex flex-col items-center md:items-start gap-3 sm:gap-4">
               <Link to="/book" className="tap w-full sm:w-auto px-6 py-3 rounded-full bg-yellow-500 text-black font-semibold hover:bg-yellow-400 transition shadow-lg shadow-yellow-500/10">
@@ -27,11 +27,11 @@ export default function Hero() {
             <div className="mt-6 flex flex-wrap justify-center md:justify-start gap-3 text-xs text-zinc-400">
               <span className="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-950/70 px-3 py-1">
                 <svg className="w-4 h-4 text-yellow-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
-                Profesionalni barber
+                Profesionalni frizer
               </span>
               <span className="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-950/70 px-3 py-1">
                 <svg className="w-4 h-4 text-yellow-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20l9-16H3l9 16z"/></svg>
-                Premium kozmetika
+                Premium šišanje
               </span>
               <span className="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-950/70 px-3 py-1">
                 <svg className="w-4 h-4 text-yellow-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>

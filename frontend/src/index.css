@@ -54,3 +54,7 @@ body { background: #000; -webkit-font-smoothing: antialiased; -moz-osx-font-smoo
 	.tap { min-height: 44px; }
 }
 
+/* Hide scrollbars where desired */
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+

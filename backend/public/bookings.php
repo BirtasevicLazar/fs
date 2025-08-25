@@ -36,7 +36,7 @@ if ($method === 'POST') {
     }
 
     // Simple rate limit by IP: max 5 bookings attempts per 10 minutes
-    if (!checkGeneralRateLimit('create_booking', getClientIp(), 5, 600)) {
+    if (!checkGeneralRateLimit('create_booking', getClientIp(), 25, 600)) {
         http_response_code(429);
         echo json_encode(['error' => 'Previše pokušaja. Pokušajte kasnije.']);
         exit;
