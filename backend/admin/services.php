@@ -11,11 +11,18 @@ $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 // Admin-only listing for this endpoint; public listing exists under public/services.php
 if ($method === 'GET') {
     requireLogin();
-    // list services (including inactive if query all=1)
-    $all = isset($_GET['all']) ? (int)$_GET['all'] : 0;
-    $sql = $all ? "SELECT id, name, price, duration_minutes, active FROM services ORDER BY name" : "SELECT id, name, price, duration_minutes, active FROM services WHERE active=1 ORDER BY name";
-    $res = $conn->query($sql);
+    // Admin can see all services by default. Optional filter: ?active=1 or ?active=0
     $rows = [];
+    if (isset($_GET['active'])) {
+        $active = (int)$_GET['active'];
+        if ($active === 0 || $active === 1) {
+            $res = $conn->query("SELECT id, name, price, duration_minutes, active FROM services WHERE active = $active ORDER BY name");
+        } else {
+            $res = $conn->query("SELECT id, name, price, duration_minutes, active FROM services ORDER BY name");
+        }
+    } else {
+        $res = $conn->query("SELECT id, name, price, duration_minutes, active FROM services ORDER BY name");
+    }
     while ($row = $res->fetch_assoc()) $rows[] = $row;
     echo json_encode($rows);
     exit;

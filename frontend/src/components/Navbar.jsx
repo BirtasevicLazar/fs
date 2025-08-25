@@ -20,7 +20,6 @@ export default function Navbar() {
         <nav className="hidden sm:flex items-center gap-2">
           <NavLink to="/" className={navLinkClass} end>Početna</NavLink>
           <NavLink to="/book" className={navLinkClass}>Rezerviši</NavLink>
-          <NavLink to="/admin" className={navLinkClass}>Admin</NavLink>
         </nav>
       </div>
       {open && (
@@ -28,7 +27,6 @@ export default function Navbar() {
           <div className="flex flex-col py-2">
             <NavLink to="/" onClick={()=>setOpen(false)} className={navLinkClass} end>Početna</NavLink>
             <NavLink to="/book" onClick={()=>setOpen(false)} className={navLinkClass}>Rezerviši</NavLink>
-            <NavLink to="/admin" onClick={()=>setOpen(false)} className={navLinkClass}>Admin</NavLink>
           </div>
         </div>
       )}
